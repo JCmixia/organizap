@@ -1,0 +1,88 @@
+/* src/components/Formulario.css */
+.formulario-container {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.formulario {
+  background-color: #f9f9f9;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.campo {
+  margin-bottom: 20px;
+}
+
+.campo label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #333;
+}
+
+.campo input,
+.campo textarea {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+  transition: border-color 0.3s;
+}
+
+.campo input:focus,
+.campo textarea:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.campo input.error,
+.campo textarea.error {
+  border-color: #dc3545;
+}
+
+.mensaje-error {
+  display: block;
+  margin-top: 5px;
+  color: #dc3545;
+  font-size: 14px;
+}
+
+.mensaje-exito {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.boton-enviar {
+  background-color: #007bff;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.3s;
+}
+
+.boton-enviar:hover {
+  background-color: #0056b3;
+}
+
+.app {
+  text-align: center;
+  padding: 20px;
+}
+
+.app h1 {
+  color: #333;
+  margin-bottom: 30px;
+}
