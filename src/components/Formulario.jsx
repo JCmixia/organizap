@@ -57,7 +57,7 @@ function Formulario() {
       } catch (e) {
         // Si no es JSON, guardar el texto y mostrar mensaje
         setRespuestaServer(responseText);
-        throw new Error("El servidor devolvió una respuesta inesperada");
+        throw new Error("El servidor devolvió una respuesta inesperada" + e.Error);
       }
 
       setRespuestaServer(JSON.stringify(data));
@@ -86,7 +86,6 @@ function Formulario() {
 
   return (
     <div className="formulario-container">
-      <h1>Formulario de Contacto</h1>
 
       {enviado && (
         <div className="mensaje-exito">
@@ -104,7 +103,7 @@ function Formulario() {
 
       <form onSubmit={handleSubmit} className="formulario">
         <div className="campo">
-          <label>Usuario:</label>
+          <label>Nombre del usuario:</label>
           <input
             type="text"
             name="nombre"
