@@ -101,6 +101,8 @@ function Formulario() {
         </div>
       )}
 
+      <label className="campo">Datos del repuesto</label>
+
       <form onSubmit={handleSubmit} className="formulario">
         <div className="campo">
           <label>Nombre del usuario:</label>
