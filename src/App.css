@@ -1,7 +1,7 @@
 #root {
-  max-width: 1280px;
+  max-width: 2280px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1rem;
   text-align: center;
 }
 
@@ -43,9 +43,9 @@
 
 /* src/App.css 100226*/
 * {
-  margin: 0;
-  padding: 0;
+
   box-sizing: border-box;
+  background-color: aliceblue;
 }
 
 body {
@@ -55,5 +55,11 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #f0f2f5;
+}
+
+.app {
+  text-align: center;
+  padding: 10px;
+  background-color: lightcyan;
 }
 

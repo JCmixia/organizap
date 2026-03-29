@@ -4,9 +4,14 @@ import "./Formulario.css";
 
 function Formulario() {
   const [formData, setFormData] = useState({
-    nombre: "",
-    email: "",
-    mensaje: "",
+    defaultValues: {
+      fecha: "",
+      colaborador: "",
+      reserva: "",
+      material: "",
+      descripcion: "",
+      comentario: "",
+    },
   });
   const [enviado, setEnviado] = useState(false);
   const [cargando, setCargando] = useState(false);
@@ -57,7 +62,9 @@ function Formulario() {
       } catch (e) {
         // Si no es JSON, guardar el texto y mostrar mensaje
         setRespuestaServer(responseText);
-        throw new Error("El servidor devolvió una respuesta inesperada" + e.Error);
+        throw new Error(
+          "El servidor devolvió una respuesta inesperada" + e.Error,
+        );
       }
 
       setRespuestaServer(JSON.stringify(data));
@@ -86,7 +93,6 @@ function Formulario() {
 
   return (
     <div className="formulario-container">
-
       {enviado && (
         <div className="mensaje-exito">
           ✅ ¡Formulario enviado con éxito a Google Sheets!
@@ -103,51 +109,78 @@ function Formulario() {
 
       <label className="campo">Datos del repuesto</label>
 
-      <form onSubmit={handleSubmit} className="formulario">
-        <div className="campo">
-          <label>Nombre del usuario:</label>
-          <input
-            type="text"
-            name="nombre"
-            value={formData.nombre}
-            onChange={handleChange}
-            disabled={cargando}
-            required
-          />
-        </div>
-
-        <div className="campo">
-          <label>Email:</label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            disabled={cargando}
-            required
-          />
-        </div>
-
-        <div className="campo">
-          <label>Mensaje:</label>
-          <textarea
-            name="mensaje"
-            value={formData.mensaje}
-            onChange={handleChange}
-            rows="4"
-            disabled={cargando}
-            required
-          />
-        </div>
-
-        <button type="submit" className="boton-enviar" disabled={cargando}>
-          {cargando ? "⏳ Enviando..." : "📤 Enviar formulario"}
-        </button>
-      </form>
-
-      <div style={{ marginTop: "20px", fontSize: "12px", color: "#666" }}>
-        <p>📌 Modo: CORS habilitado (sin proxy, sin no-cors)</p>
-      </div>
+        <form onSubmit={handleSubmit} className="formulario">
+          <div className="campo">
+            <input
+              type="date"
+              name="fecha"
+              value={formData.fecha || ""}
+              onChange={handleChange}
+              disabled={cargando}
+              placeholder="Fecha de registro"
+              required
+              style={{ position: "relative" }}
+            />
+          </div>
+          <div className="campo">
+            <input
+              type="text"
+              name="colaborador"
+              value={formData.Colaborador}
+              onChange={handleChange}
+              disabled={cargando}
+              placeholder="Cod. colaborador"
+              required
+            />
+          </div>
+          <div className="campo">
+            <input
+              type="text"
+              name="reserva"
+              value={formData.reserva}
+              onChange={handleChange}
+              disabled={cargando}
+              placeholder="No. Reserva"
+              required
+            />
+          </div>
+          <div className="campo">
+            <input
+              type="text"
+              name="material"
+              value={formData.material}
+              onChange={handleChange}
+              disabled={cargando}
+              placeholder="Código material"
+              required
+            />
+          </div>
+          <div className="campo">
+            <input
+              type="text"
+              name="decripcion"
+              value={formData.descripcion}
+              onChange={handleChange}
+              disabled={cargando}
+              placeholder="Descripción"
+              required
+            />
+          </div>
+          <div className="campo">
+            <input
+              type="text"
+              name="comentario"
+              value={formData.comentario}
+              onChange={handleChange}
+              placeholder="Comentario"
+              disabled={cargando}
+            />
+          </div>
+          <button type="submit" className="boton-enviar" disabled={cargando}>
+            {cargando ? "⏳ Enviando..." : "📤 Enviar formulario"}
+          </button>
+        </form>
+      <div style={{ marginTop: "20px", fontSize: "12px", color: "#666" }}></div>
     </div>
   );
 }

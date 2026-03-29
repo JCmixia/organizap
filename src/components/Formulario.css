@@ -1,19 +1,19 @@
 /* src/components/Formulario.css */
 .formulario-container {
-  max-width: 500px;
+  width: 100%;
   margin: 0 auto;
   padding: 20px;
 }
 
 .formulario {
-  background-color: #f9f9f9;
+  background-color: darkseagreen;
   padding: 30px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .campo {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .campo label {
@@ -23,8 +23,7 @@
   color: #333;
 }
 
-.campo input,
-.campo textarea {
+.campo input {
   width: 100%;
   padding: 10px;
   border: 2px solid #ddd;
@@ -77,12 +76,25 @@
   background-color: #0056b3;
 }
 
-.app {
-  text-align: center;
-  padding: 20px;
-}
 
 .app h1 {
   color: #333;
   margin-bottom: 30px;
+}
+
+/* CSS */
+input[type="date"]:before {
+  content: attr(placeholder);
+  color: #999;
+  position: absolute;
+  background: white;
+}
+
+input[type="date"]:focus:before,
+input[type="date"]:valid:before {
+  display: none;
+}
+
+.formRpt{
+  width: 100%;
 }
