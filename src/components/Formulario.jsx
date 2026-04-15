@@ -13,14 +13,26 @@ function Formulario() {
       comentario: "",
     },
   });
+
   const [enviado, setEnviado] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
   const [respuestaServer, setRespuestaServer] = useState("");
 
+  // Declaración directa de colaboradores
+  const colaboradores = [
+    { id: '1', nombre: 'Josué Castillo' },
+    { id: '2', nombre: 'Hector Villatoro' },
+    { id: '3', nombre: 'Rayson Monzón' },
+    { id: '4', nombre: 'Jorge Morales' }
+  ];
+
   // ✅ USA LA NUEVA URL DE GOOGLE APPS SCRIPT (SIN PROXY)
+  //const GOOGLE_SCRIPT_URL =
+  //  "https://script.google.com/macros/s/AKfycbxRlPmlNzgV5ESDD-J1YAgGftZxRCZa3gCschQXurpaKlbZpzqEvcAczOyabMiRIaqEZg/exec";
+
   const GOOGLE_SCRIPT_URL =
-    "https://script.google.com/macros/s/AKfycbxRlPmlNzgV5ESDD-J1YAgGftZxRCZa3gCschQXurpaKlbZpzqEvcAczOyabMiRIaqEZg/exec";
+    "https://script.google.com/macros/s/AKfycbw2NH3QnGo3yL4i_s59pduLUAAMkzruBe9NxQwmXKl_IgfITZPgqKG9PMXa42S81Mt6PA/exec";
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -109,77 +121,82 @@ function Formulario() {
 
       <label className="campo">Datos del repuesto</label>
 
-        <form onSubmit={handleSubmit} className="formulario">
-          <div className="campo">
-            <input
-              type="date"
-              name="fecha"
-              value={formData.fecha || ""}
-              onChange={handleChange}
-              disabled={cargando}
-              placeholder="Fecha de registro"
-              required
-              style={{ position: "relative" }}
-            />
-          </div>
-          <div className="campo">
-            <input
-              type="text"
-              name="colaborador"
-              value={formData.Colaborador}
-              onChange={handleChange}
-              disabled={cargando}
-              placeholder="Cod. colaborador"
-              required
-            />
-          </div>
-          <div className="campo">
-            <input
-              type="text"
-              name="reserva"
-              value={formData.reserva}
-              onChange={handleChange}
-              disabled={cargando}
-              placeholder="No. Reserva"
-              required
-            />
-          </div>
-          <div className="campo">
-            <input
-              type="text"
-              name="material"
-              value={formData.material}
-              onChange={handleChange}
-              disabled={cargando}
-              placeholder="Código material"
-              required
-            />
-          </div>
-          <div className="campo">
-            <input
-              type="text"
-              name="decripcion"
-              value={formData.descripcion}
-              onChange={handleChange}
-              disabled={cargando}
-              placeholder="Descripción"
-              required
-            />
-          </div>
-          <div className="campo">
-            <input
-              type="text"
-              name="comentario"
-              value={formData.comentario}
-              onChange={handleChange}
-              placeholder="Comentario"
-              disabled={cargando}
-            />
-          </div>
-          <button type="submit" className="boton-enviar" disabled={cargando}>
-            {cargando ? "⏳ Enviando..." : "📤 Enviar formulario"}
-          </button>
-        </form>
+      <form onSubmit={handleSubmit} className="formulario">
+        <div className="campo">
+          <input
+            type="date"
+            name="fecha"
+            value={formData.fecha || ""}
+            onChange={handleChange}
+            disabled={cargando}
+            placeholder="Fecha de registro"
+            required
+            style={{ position: "relative" }}
+          />
+        </div>
+        <div className="campo">
+          <select
+            name="colaborador"
+            value={formData.Colaborador}
+            onChange={handleChange}
+            disabled={cargando}
+            required
+          >
+            <option value="">Colaborador</option>
+            {colaboradores.map((colaborador) => (
+              <option key={colaborador.id} value={colaborador.nombre}>
+                {colaborador.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="campo">
+          <input
+            type="text"
+            name="reserva"
+            value={formData.reserva}
+            onChange={handleChange}
+            disabled={cargando}
+            placeholder="No. Reserva"
+            required
+          />
+        </div>
+        <div className="campo">
+          <input
+            type="text"
+            name="material"
+            value={formData.material}
+            onChange={handleChange}
+            disabled={cargando}
+            placeholder="Código material"
+            required
+          />
+        </div>
+        <div className="campo">
+          <input
+            type="text"
+            name="descripcion"
+            value={formData.descripcion}
+            onChange={handleChange}
+            disabled={cargando}
+            placeholder="Descripción"
+            required
+          />
+        </div>
+        <div className="campo">
+          <input
+            type="text"
+            name="comentario"
+            value={formData.comentario}
+            onChange={handleChange}
+            placeholder="Comentario"
+            disabled={cargando}
+          />
+        </div>
+        <button type="submit" className="boton-enviar" disabled={cargando}>
+          {cargando ? "⏳ Enviando..." : "📤 Enviar formulario"}
+        </button>
+      </form>
       <div style={{ marginTop: "20px", fontSize: "12px", color: "#666" }}></div>
     </div>
   );
