@@ -1,203 +1,291 @@
 // src/components/Formulario.jsx
 import { useState } from "react";
-import "./Formulario.css";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
+// Plantilla de un ítem (solo datos del equipo)
+const itemVacio = {
+  tipoEquipo: "",
+  codigo: "",
+  marca: "",
+  cantidad: 1,
+};
 
 function Formulario() {
-  const [formData, setFormData] = useState({
-    defaultValues: {
-      fecha: "",
-      colaborador: "",
-      reserva: "",
-      material: "",
-      descripcion: "",
-      comentario: "",
-    },
+  // Datos de la boleta (una sola vez)
+  const [boleta, setBoleta] = useState({
+    fecha: "",
+    colaborador: "",
+    carne: "",
   });
 
-  const [enviado, setEnviado] = useState(false);
-  const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState("");
-  const [respuestaServer, setRespuestaServer] = useState("");
+  // Ítems de la boleta (uno o varios)
+  const [items, setItems] = useState([{ ...itemVacio }]);
 
-  // Declaración directa de colaboradores
-  const colaboradores = [
-    { id: '1', nombre: 'Josué Castillo' },
-    { id: '2', nombre: 'Hector Villatoro' },
-    { id: '3', nombre: 'Rayson Monzón' },
-    { id: '4', nombre: 'Jorge Morales' }
-  ];
-
-  // ✅ USA LA NUEVA URL DE GOOGLE APPS SCRIPT (SIN PROXY)
-  //const GOOGLE_SCRIPT_URL =
-  //  "https://script.google.com/macros/s/AKfycbxRlPmlNzgV5ESDD-J1YAgGftZxRCZa3gCschQXurpaKlbZpzqEvcAczOyabMiRIaqEZg/exec";
-
-  const GOOGLE_SCRIPT_URL =
-    "https://script.google.com/macros/s/AKfycbw2NH3QnGo3yL4i_s59pduLUAAMkzruBe9NxQwmXKl_IgfITZPgqKG9PMXa42S81Mt6PA/exec";
-
-  const handleChange = (e) => {
+  // --- Handlers de boleta ---
+  const handleBoletaChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setBoleta((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
+  // --- Handlers de ítems ---
+  const handleItemChange = (index, field, value) => {
+    setItems((prev) => {
+      const copia = [...prev];
+      copia[index] = { ...copia[index], [field]: value };
+      return copia;
+    });
+  };
+
+  const agregarItem = () => {
+    setItems((prev) => [...prev, { ...itemVacio }]);
+  };
+
+  const eliminarItem = (index) => {
+    setItems((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Convierte "2026-08-13" → "13 DE AGOSTO DEL 2026"
+  function fechaEnLetras(fechaISO) {
+    if (!fechaISO) return "";
+
+    const meses = [
+      "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
+      "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE",
+    ];
+
+    // Separamos manualmente para evitar desfases por zona horaria
+    // (new Date("2026-08-13") puede interpretarse como UTC y restar un día)
+    const [anio, mes, dia] = fechaISO.split("-");
+    const mesNombre = meses[Number(mes) - 1];
+
+    return `${Number(dia)} DE ${mesNombre} DEL ${anio}`;
+  }
+
+  // --- Generar PDF ---
+  const generarPDF = (e) => {
     e.preventDefault();
-    setCargando(true);
-    setError("");
-    setRespuestaServer("");
 
-    try {
-      setCargando(true);
-      setError(null);
-
-      const response = await fetch(GOOGLE_SCRIPT_URL, {
-        method: "POST",
-        mode: "cors",
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      // Verificar si la respuesta es exitosa
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // Obtener el texto de la respuesta
-      const responseText = await response.text();
-      console.log("Respuesta del servidor:", responseText);
-
-      // Intentar parsear como JSON
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        // Si no es JSON, guardar el texto y mostrar mensaje
-        setRespuestaServer(responseText);
-        throw new Error(
-          "El servidor devolvió una respuesta inesperada" + e.Error,
-        );
-      }
-
-      setRespuestaServer(JSON.stringify(data));
-
-      // Procesar la respuesta según su contenido
-      if (data.success) {
-        setEnviado(true);
-        setFormData({ nombre: "", email: "", mensaje: "" });
-        setTimeout(() => setEnviado(false), 3000);
-        console.log("Formulario enviado con éxito");
-      } else {
-        setError(data.error || "Error desconocido al guardar");
-      }
-    } catch (err) {
-      console.error("Error completo:", err);
-      setError(err.message || "Error de conexión");
-
-      // Opcional: Mostrar un mensaje más amigable
-      if (err.message.includes("Failed to fetch")) {
-        setError("No se pudo conectar con el servidor. Verifica tu conexión.");
-      }
-    } finally {
-      setCargando(false);
+    // Validación mínima
+    if (!boleta.fecha || !boleta.colaborador || !boleta.carne) {
+      alert("Completa Fecha, Colaborador y Carné antes de generar la boleta.");
+      return;
     }
+    const hayItems = items.some(
+      (it) => it.tipoEquipo || it.codigo || it.marca
+    );
+    if (!hayItems) {
+      alert("Agrega al menos un ítem con datos.");
+      return;
+    }
+
+    // nueva validación de cantidades
+    const cantidadesValidas = items.every(
+      (it) => Number(it.cantidad) >= 1
+    );
+    if (!cantidadesValidas) {
+      alert("Cada ítem debe tener una cantidad mayor o igual a 1.");
+      return;
+    }
+
+    const doc = new jsPDF();
+
+    // --- Encabezado ---
+    doc.setFontSize(16);
+    doc.text("Carta de Responsabilidad de Materiales", 14, 20);
+
+    // --- Datos de la boleta ---
+    doc.setFontSize(10);
+    //doc.text(`Fecha: ${boleta.fecha}`, 14, 30);
+    doc.text(`${fechaEnLetras(boleta.fecha)}`, 14, 30);
+    //doc.text(`${boleta.colaborador}, `, 14, 36);
+    //doc.text(`Carné: ${boleta.carne}`, 14, 42);
+
+    // --- Párrafo de aceptación ---
+    const parrafo = `A través de este documento yo, ${boleta.colaborador}, quién me identifico con el número de carné ${boleta.carne} acepto que recibo en buen estado el equipo detallado a continuación:`;
+
+    // doc.splitTextToSize ajusta el texto al ancho de la página (A4 ≈ 210mm, márgenes 14mm → ~182mm útiles)
+    const lineas = doc.splitTextToSize(parrafo, 180);
+
+    // Imprime el bloque a partir de y=52
+    doc.text(lineas, 14, 36);
+
+    // Y calculamos dónde empieza la tabla (debajo del párrafo)
+    const yTabla = 36 + lineas.length * 6 + 4;  // 6mm por línea aprox + margen
+
+    // --- Tabla de ítems ---
+    autoTable(doc, {
+      startY: 50,
+      head: [["#", "Tipo de equipo", "Código", "Marca", "Cantidad"]],
+      body: items.map((it, i) => [
+        i + 1,
+        it.tipoEquipo,
+        it.codigo,
+        it.marca,
+        it.cantidad,
+      ]),
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: [40, 40, 40], textColor: 255 },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+      theme: "grid",
+      columnStyles: {
+        4: { halign: "center", cellWidth: 22 },  // 👈 centrar la columna Cantidad
+      },
+    });
+
+    // --- Pie: firma ---
+    const finalY = doc.lastAutoTable.finalY + 20;
+    doc.setFontSize(10);
+    doc.text("_____________________________", 14, finalY);
+    doc.text("Firma del colaborador", 14, finalY + 6);
+
+    // --- Guardar ---
+    doc.save(`boleta-${Date.now()}.pdf`);
   };
 
   return (
-    <div className="formulario-container">
-      {enviado && (
-        <div className="mensaje-exito">
-          ✅ ¡Formulario enviado con éxito a Google Sheets!
-        </div>
-      )}
+    <div>
+      <h2>Carta de Responsabilidad de Materiales</h2>
 
-      {error && <div className="mensaje-error">❌ {error}</div>}
+      <form onSubmit={generarPDF}>
+        {/* --- Datos de la boleta --- */}
+        <fieldset
+          style={{
+            marginBottom: "20px",
+            padding: "12px",
+            border: "1px solid #999",
+          }}
+        >
+          <legend>
+            <strong>Datos de la boleta</strong>
+          </legend>
 
-      {respuestaServer && (
-        <div className="info-depuracion">
-          <small>Respuesta del servidor: {respuestaServer}</small>
-        </div>
-      )}
+          <div>
+            <label>Fecha: </label>
+            <input
+              type="date"
+              name="fecha"
+              value={boleta.fecha}
+              onChange={handleBoletaChange}
+              required
+            />
+          </div>
 
-      <label className="campo">Datos del repuesto</label>
+          <div>
+            <label>Colaborador: </label>
+            <input
+              type="text"
+              name="colaborador"
+              value={boleta.colaborador}
+              onChange={handleBoletaChange}
+              placeholder="Nombre completo"
+              required
+            />
+          </div>
 
-      <form onSubmit={handleSubmit} className="formulario">
-        <div className="campo">
-          <input
-            type="date"
-            name="fecha"
-            value={formData.fecha || ""}
-            onChange={handleChange}
-            disabled={cargando}
-            placeholder="Fecha de registro"
-            required
-            style={{ position: "relative" }}
-          />
-        </div>
-        <div className="campo">
-          <select
-            name="colaborador"
-            value={formData.Colaborador}
-            onChange={handleChange}
-            disabled={cargando}
-            required
+          <div>
+            <label>Carné: </label>
+            <input
+              type="text"
+              name="carne"
+              value={boleta.carne}
+              onChange={handleBoletaChange}
+              placeholder="Carné"
+              required
+            />
+          </div>
+        </fieldset>
+
+        {/* --- Ítems --- */}
+        <h3>Equipos entregados</h3>
+
+        {items.map((item, index) => (
+          <fieldset
+            key={index}
+            style={{
+              marginBottom: "16px",
+              padding: "12px",
+              border: "1px solid #ccc",
+            }}
           >
-            <option value="">Colaborador</option>
-            {colaboradores.map((colaborador) => (
-              <option key={colaborador.id} value={colaborador.nombre}>
-                {colaborador.nombre}
-              </option>
-            ))}
-          </select>
+            <legend>
+              <strong>Ítem #{index + 1}</strong>
+            </legend>
+
+            <div>
+              <label>Tipo de equipo: </label>
+              <input
+                type="text"
+                value={item.tipoEquipo}
+                onChange={(e) =>
+                  handleItemChange(index, "tipoEquipo", e.target.value)
+                }
+                placeholder="Ej. Memoria USB"
+                required
+              />
+            </div>
+
+            <div>
+              <label>Código: </label>
+              <input
+                type="text"
+                value={item.codigo}
+                onChange={(e) =>
+                  handleItemChange(index, "codigo", e.target.value)
+                }
+                placeholder="Código"
+                required
+              />
+            </div>
+
+            <div>
+              <label>Marca: </label>
+              <input
+                type="text"
+                value={item.marca}
+                onChange={(e) =>
+                  handleItemChange(index, "marca", e.target.value)
+                }
+                placeholder="Marca"
+                required
+              />
+            </div>
+            <div>
+              <label>Cantidad: </label>
+              <input
+                type="number"
+                min="1"
+                value={item.cantidad}
+                onChange={(e) =>
+                  handleItemChange(index, "cantidad", e.target.value)
+                }
+                style={{ width: "80px" }}
+                required
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => eliminarItem(index)}
+              disabled={items.length === 1}
+              style={{ marginTop: "8px" }}
+            >
+              🗑️ Eliminar este ítem
+            </button>
+          </fieldset>
+        ))}
+
+        <div style={{ display: "flex", gap: "12px", marginTop: "12px" }}>
+          <button type="button" onClick={agregarItem}>
+            ➕ Agregar otro elemento
+          </button>
+
+          <button type="submit">
+            📄 Generar boleta PDF ({items.length} ítem
+            {items.length !== 1 ? "s" : ""})
+          </button>
         </div>
-        <div className="campo">
-          <input
-            type="text"
-            name="reserva"
-            value={formData.reserva}
-            onChange={handleChange}
-            disabled={cargando}
-            placeholder="No. Reserva"
-            required
-          />
-        </div>
-        <div className="campo">
-          <input
-            type="text"
-            name="material"
-            value={formData.material}
-            onChange={handleChange}
-            disabled={cargando}
-            placeholder="Código material"
-            required
-          />
-        </div>
-        <div className="campo">
-          <input
-            type="text"
-            name="descripcion"
-            value={formData.descripcion}
-            onChange={handleChange}
-            disabled={cargando}
-            placeholder="Descripción"
-            required
-          />
-        </div>
-        <div className="campo">
-          <input
-            type="text"
-            name="comentario"
-            value={formData.comentario}
-            onChange={handleChange}
-            placeholder="Comentario"
-            disabled={cargando}
-          />
-        </div>
-        <button type="submit" className="boton-enviar" disabled={cargando}>
-          {cargando ? "⏳ Enviando..." : "📤 Enviar formulario"}
-        </button>
       </form>
-      <div style={{ marginTop: "20px", fontSize: "12px", color: "#666" }}></div>
     </div>
   );
 }
