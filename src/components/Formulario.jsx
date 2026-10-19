@@ -5,6 +5,27 @@ import autoTable from "jspdf-autotable";
 import logoUrl from "../../public/logo.png";
 import { SimpleSignature } from "react-simple-signature";
 
+// 1. COMPONENTE AISLADO PARA LAS FIRMAS
+// Esto evita que la página se quede en blanco al agregar/quitar ítems
+function PadFirma({ titulo, signatureRef, onChange, onLimpiar }) {
+  return (
+    <div style={{ marginBottom: "20px", padding: "12px", border: "1px solid #ccc" }}>
+      <legend><strong>{titulo}</strong></legend>
+      <SimpleSignature
+        ref={signatureRef}
+        onChange={onChange}
+        width={400}
+        height={150}
+        strokeColor="#000"
+      />
+      <div style={{ marginTop: "10px" }}>
+        <button type="button" onClick={onLimpiar}>
+          Limpiar firma
+        </button>
+      </div>
+    </div>
+  );
+}
 
 const itemVacio = {
   descripcion: "",
@@ -19,42 +40,27 @@ function Formulario() {
     colaborador: "",
     carne: "",
   });
-  //Inicio Firma recibido
-  const [firmaBase64, setFirmaBase64] = useState("");
-  const signatureRef = useRef(null);
-
-  // Función que se ejecuta cada vez que el usuario firma
-  const handleSignature = (blob) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFirmaBase64(reader.result); // Guardamos el Base64 de la firma
-    };
-    reader.readAsDataURL(blob);
-  };
 
   const [items, setItems] = useState([{ ...itemVacio }]);
 
-  const handleBoletaChange = (e) => {
-    const { name, value } = e.target;
-    setBoleta((prev) => ({ ...prev, [name]: value }));
-  };
+  // --- Firma Recibe ---
+  const [firmaBase64, setFirmaBase64] = useState("");
+  const signatureRef = useRef(null);
 
-  const handleItemChange = (index, field, value) => {
-    setItems((prev) => {
-      const copia = [...prev];
-      copia[index] = { ...copia[index], [field]: value };
-      return copia;
-    });
+  const handleSignature = (blob) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFirmaBase64(reader.result);
+    };
+    reader.readAsDataURL(blob);
   };
 
   const limpiarFirma = () => {
     signatureRef.current?.clear();
     setFirmaBase64("");
   };
-  // Fin Firma recibido
 
-  // Inicio firma entrega
-  // --- Firma de quien entrega ---
+  // --- Firma Entrega ---
   const [firmaEntregaBase64, setFirmaEntregaBase64] = useState("");
   const signatureEntregaRef = useRef(null);
 
@@ -71,7 +77,19 @@ function Formulario() {
     setFirmaEntregaBase64("");
   };
 
-  // Fin Firma entrega
+  // --- Handlers de la boleta e items ---
+  const handleBoletaChange = (e) => {
+    const { name, value } = e.target;
+    setBoleta((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleItemChange = (index, field, value) => {
+    setItems((prev) => {
+      const copia = [...prev];
+      copia[index] = { ...copia[index], [field]: value };
+      return copia;
+    });
+  };
 
   const agregarItem = () => {
     setItems((prev) => [...prev, { ...itemVacio }]);
@@ -81,6 +99,7 @@ function Formulario() {
     setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // --- Utilidades ---
   function fechaEnLetras(fechaISO) {
     if (!fechaISO) return "";
     const meses = [
@@ -92,7 +111,6 @@ function Formulario() {
     return `${Number(dia)} DE ${mesNombre} DEL ${anio}`;
   }
 
-  // Carga una imagen local (public/) como base64 + dimensiones originales
   function cargarImagenLocal(ruta) {
     return new Promise((resolve) => {
       const img = new Image();
@@ -113,6 +131,7 @@ function Formulario() {
     });
   }
 
+  // --- Generación del PDF ---
   const generarPDF = async (e) => {
     e.preventDefault();
 
@@ -132,22 +151,23 @@ function Formulario() {
       alert("Cada ítem debe tener una cantidad mayor o igual a 1.");
       return;
     }
+    
+    // Validación opcional de firmas
+    if (!firmaBase64 || !firmaEntregaBase64) {
+      if (!window.confirm("Faltan firmas. ¿Deseas generar el PDF de todos modos?")) {
+        return;
+      }
+    }
 
     const doc = new jsPDF();
 
-    // --- Cargar logo (objeto con base64 + medidas) ---
+    // --- Cargar logo ---
     const logo = await cargarImagenLocal(logoUrl);
-    console.log("🖼️ logo object:", logo);
-    console.log("🖼️ logo base64 length:", logo?.base64?.length);
-    console.log("🖼️ logo width/height:", logo?.width, logo?.height);
-
     if (!logo) {
-      console.warn(
-        "⚠️ No se encontró /logo.png o falló al cargar. Revisa que esté en public/logo.png"
-      );
+      console.warn("⚠️ No se pudo cargar el logo.");
     }
 
-    // --- Encabezado (tabla de 3 columnas) ---
+    // --- Encabezado ---
     autoTable(doc, {
       startY: 10,
       margin: { left: 14, right: 14 },
@@ -174,7 +194,6 @@ function Formulario() {
         1: { cellWidth: "auto" },
         2: { cellWidth: 35 },
       },
-
       didDrawCell: (data) => {
         if (
           data.section === "body" &&
@@ -200,7 +219,6 @@ function Formulario() {
           doc.addImage(logo.base64, "PNG", x, y, w, h);
 
           doc.setFontSize(8);
-
           doc.text(
             "Gestión de Tecnología\nde Información",
             data.cell.x + data.cell.width / 2,
@@ -211,26 +229,25 @@ function Formulario() {
       },
     });
 
-    // --- Desde aquí continúa tu contenido normal ---
+    // --- Datos de la boleta ---
     const startY = doc.lastAutoTable.finalY + 10;
 
-
     doc.setFontSize(10);
-    doc.setFont("helvetica", "bold")
+    doc.setFont("helvetica", "bold");
     doc.text(`${fechaEnLetras(boleta.fecha)}`, 14, startY);
     doc.text(`Para:`, 14, startY + 10);
     doc.text(`Carné:`, 14, startY + 16);
     doc.text(`De:`, 14, startY + 22);
     doc.text(`Asunto:`, 14, startY + 28);
 
-    doc.setFont("helvetica", "normal")
+    doc.setFont("helvetica", "normal");
     doc.text(`${boleta.colaborador}`, 24, startY + 10);
     doc.text(`${boleta.carne}`, 26, startY + 16);
     doc.text(`Departamento de Agricultura de Precisión`, 20, startY + 22);
     doc.text(`Asignación de equipo`, 28, startY + 28);
 
-
-    const parrafo = `Por medio de la presente se le informa que se le asigna el siguiente material para el resguardo y transferencia de información relacionada con sus activides laborales.`;
+    // --- Párrafo descriptivo ---
+    const parrafo = `Por medio de la presente se le informa que se le asigna el siguiente material para el resguardo y transferencia de información relacionada con sus actividades laborales.`;
     const lineas = doc.splitTextToSize(parrafo, 180);
     const yParrafo = startY + 32;
 
@@ -240,7 +257,7 @@ function Formulario() {
 
     const yTabla = yParrafo + lineas.length * 10;
 
-    //Tabla de materiales
+    // --- Tabla de materiales ---
     autoTable(doc, {
       startY: yTabla,
       head: [["No.", "Descripción", "Marca", "Cantidad", "Observación"]],
@@ -256,45 +273,45 @@ function Formulario() {
       alternateRowStyles: { fillColor: [245, 245, 245] },
       theme: "grid",
       columnStyles: {
-        0: { cellWidth: 12, halign: "center" }, // No.
-        3: { cellWidth: 20, halign: "center" }, // Cantidad (más angosta)
-        4: { cellWidth: 65 },                   // Observación (más ancha)
-        //4: { halign: "center", cellWidth: 22 },
+        0: { cellWidth: 12, halign: "center" },
+        3: { cellWidth: 20, halign: "center" },
+        4: { cellWidth: 65 },
       },
     });
 
-    // --- Pie: firma ---
+    // --- Pie del documento y Observaciones ---
     const finalY = doc.lastAutoTable.finalY + 10;
 
     doc.setFontSize(10);
-    const texto = `Favor de firmar de recibido en el presente memorándum, confirmando la asignación del equipo. Cualquier inconveniente o daño, comunicarse inmediatamente con el departamento de Agricultura de Precisión`
-    const textoF = doc.splitTextToSize(parrafo, 180);
+    const texto = `Favor de firmar de recibido en el presente memorándum, confirmando la asignación del equipo. Cualquier inconveniente o daño, comunicarse inmediatamente con el departamento de Agricultura de Precisión.`;
+    const textoF = doc.splitTextToSize(texto, 180);
     doc.text(textoF, 14, finalY);
-    doc.text(`OBSERVACIÓN`, 14, finalY + 10);
-    doc.text(`-El equipo es de uso exclusivo para actividades de la empresa`, 16, finalY + 14);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text(`OBSERVACIÓN`, 14, finalY + 12);
+    doc.setFont("helvetica", "normal");
+    doc.text(`-El equipo es de uso exclusivo para actividades de la empresa`, 16, finalY + 16);
 
-    //doc.text("Entregado por: _____________________________", 14, finalY + 50);
-    //doc.text("Firma: ____________________", 120, finalY + 50);
+    // --- Firmas lado a lado ---
+    const yFirmas = finalY + 30;
+
+    // Firma Recibe (Izquierda)
     if (firmaBase64) {
-      // Ajusta las coordenadas X (28) e Y (finalY + 10) según dónde quieras la firma
-      // El tamaño sugerido es 50mm de ancho por 20mm de alto
-      doc.addImage(firmaBase64, "PNG", 50, finalY + 20, 50, 20);
+      doc.addImage(firmaBase64, "PNG", 20, yFirmas, 50, 20); 
     } else {
-      // Si no firmaron, dejas la línea en blanco como respaldo
-      doc.text("_____________________________", 28, finalY + 25);
+      doc.text("_____________________________", 20, yFirmas + 15);
     }
+    doc.text("Firma de quien recibe", 20, yFirmas + 25);
 
-    // --- NUEVA: Firma de quien entrega (a la derecha) ---
-    // Usamos X = 120 para moverla al lado derecho
+    // Firma Entrega (Derecha)
     if (firmaEntregaBase64) {
-      doc.addImage(firmaEntregaBase64, "PNG", 50, finalY + 40, 50, 20);
+      doc.addImage(firmaEntregaBase64, "PNG", 120, yFirmas, 50, 20);
     } else {
-      doc.text("_____________________________", 50, finalY + 40);
+      doc.text("_____________________________", 120, yFirmas + 15);
     }
-    doc.text("Firma de quien entrega", 50, finalY + 50);
+    doc.text("Firma de quien entrega", 120, yFirmas + 25);
 
     doc.save(`boleta-${Date.now()}.pdf`);
-
   };
 
   return (
@@ -365,7 +382,7 @@ function Formulario() {
             </legend>
 
             <div>
-              <label>Descripción</label>
+              <label>Descripción: </label>
               <input
                 type="text"
                 value={item.descripcion}
@@ -378,7 +395,7 @@ function Formulario() {
             </div>
 
             <div>
-              <label>Marca</label>
+              <label>Marca: </label>
               <input
                 type="text"
                 value={item.marca}
@@ -390,7 +407,7 @@ function Formulario() {
               />
             </div>
             <div>
-              <label>Cantidad</label>
+              <label>Cantidad: </label>
               <input
                 type="number"
                 min="1"
@@ -403,7 +420,7 @@ function Formulario() {
               />
             </div>
             <div>
-              <label>Observación</label>
+              <label>Observación: </label>
               <input
                 type="text"
                 value={item.observacion}
@@ -426,35 +443,26 @@ function Formulario() {
           </fieldset>
         ))}
 
-        <div style={{ display: "flex", gap: "12px", marginTop: "12px" }}>
+        <div style={{ display: "flex", gap: "12px", marginTop: "12px", marginBottom: "20px" }}>
           <button type="button" onClick={agregarItem}>
             ➕ Agregar otro elemento
           </button>
         </div>
-        <div style={{ marginBottom: "20px", padding: "12px", border: "1px solid #ccc" }}>
-          <legend><strong>Firma del colaborador</strong></legend>
-          <SimpleSignature
-            ref={signatureRef}
-            onChange={handleSignature}
-            width={400}
-            height={150}
-            strokeColor="#000"
-            className="border border-gray-300"
-          />
-          <button type="button" onClick={limpiarFirma}>Limpiar firma</button>
-        </div>
-        {/* NUEVO: Firma de quien entrega */}
-        <div style={{ marginBottom: "20px", padding: "12px", border: "1px solid #ccc" }}>
-          <legend><strong>Firma de quien entrega</strong></legend>
-          <SimpleSignature
-            ref={signatureEntregaRef}
-            onChange={handleSignatureEntrega}
-            width={400}
-            height={150}
-            strokeColor="#000"
-          />
-          <button type="button" onClick={limpiarFirmaEntrega}>Limpiar firma</button>
-        </div>
+
+        {/* 2. USO DEL COMPONENTE AISLADO */}
+        <PadFirma
+          titulo="Firma del colaborador (Recibe)"
+          signatureRef={signatureRef}
+          onChange={handleSignature}
+          onLimpiar={limpiarFirma}
+        />
+
+        <PadFirma
+          titulo="Firma de quien entrega"
+          signatureRef={signatureEntregaRef}
+          onChange={handleSignatureEntrega}
+          onLimpiar={limpiarFirmaEntrega}
+        />
 
         <div style={{ display: "flex", gap: "12px", marginTop: "12px" }}>
           <button type="submit">
@@ -462,7 +470,6 @@ function Formulario() {
             {items.length !== 1 ? "s" : ""})
           </button>
         </div>
-
       </form>
     </div>
   );
