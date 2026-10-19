@@ -1,18 +1,24 @@
 /* src/components/Formulario.css */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+/* --- ESTILOS GENERALES --- */
 .form-container {
   font-family: 'Inter', sans-serif;
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
   color: #333;
+  box-sizing: border-box; /* Evita que el padding desborde el ancho */
+}
+
+* {
+  box-sizing: border-box;
 }
 
 /* Títulos */
 .form-title {
   text-align: center;
-  color: #1e3a8a; /* Azul oscuro */
+  color: #1e3a8a;
   font-size: 24px;
   margin-bottom: 30px;
   font-weight: 700;
@@ -21,13 +27,13 @@
 .section-title {
   color: #1e3a8a;
   font-size: 18px;
-  border-bottom: 2px solid #10b981; /* Línea verde */
+  border-bottom: 2px solid #10b981;
   padding-bottom: 8px;
   margin-top: 30px;
   margin-bottom: 20px;
 }
 
-/* Tarjetas (Fieldsets) */
+/* Tarjetas */
 .card {
   background-color: #ffffff;
   border: 1px solid #e5e7eb;
@@ -50,6 +56,7 @@
   display: flex;
   flex-direction: column;
   margin-bottom: 15px;
+  width: 100%; /* Asegura que ocupen todo el ancho disponible */
 }
 
 .form-group label {
@@ -66,6 +73,7 @@
   font-size: 14px;
   transition: all 0.2s;
   font-family: inherit;
+  width: 100%;
 }
 
 .form-group input:focus {
@@ -74,7 +82,7 @@
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
 }
 
-/* Grid para los inputs de los ítems */
+/* Grid para los inputs de los ítems (Escritorio) */
 .grid-4 {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr 2fr;
@@ -145,11 +153,25 @@
   border-radius: 8px;
   background-color: #f8fafc;
   margin-bottom: 20px;
+  width: 100%;
+  overflow: hidden; /* Evita que el canvas se salga de la tarjeta */
 }
 
 .signature-pad legend {
   color: #1e3a8a;
   font-weight: 600;
+}
+
+/* Contenedor del canvas de la firma para que sea responsivo */
+.canvas-container {
+  width: 100%;
+  max-width: 400px; /* Tamaño máximo original */
+  margin: 0 auto;
+}
+
+.canvas-container canvas {
+  width: 100% !important; /* Fuerza al canvas a adaptarse al ancho de la pantalla */
+  height: auto !important;
 }
 
 .actions-row {
@@ -161,4 +183,26 @@
 
 .actions-row button {
   flex: 1;
+}
+
+/* --- 📱 MEDIA QUERIES PARA CELULARES --- */
+@media (max-width: 768px) {
+  .form-container {
+    padding: 10px;
+  }
+
+  .form-title {
+    font-size: 20px;
+  }
+
+  /* En celulares, los 4 campos se apilan uno debajo del otro */
+  .grid-4 {
+    grid-template-columns: 1fr; 
+    gap: 10px;
+  }
+
+  /* Ajustes para los botones */
+  .actions-row {
+    flex-direction: column;
+  }
 }
