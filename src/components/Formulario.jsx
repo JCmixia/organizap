@@ -207,7 +207,7 @@ function Formulario() {
 
           doc.setFontSize(8);
           doc.text(
-            "Agricultura\nde precisición",
+            "Agricultura\nde Precisición",
             data.cell.x + data.cell.width / 2,
             data.cell.y + data.cell.height - padding - 7,
             { align: "center", maxWidth: data.cell.width - padding * 2 }
