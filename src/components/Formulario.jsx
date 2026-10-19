@@ -4,7 +4,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import logoUrl from "../../public/logo.png";
 import { SimpleSignature } from "react-simple-signature";
-import "./Formulario.css"; // 👈 IMPORTAMOS LOS ESTILOS
+import "./Formulario.css"; // IMPORTAMOS LOS ESTILOS
 
 // COMPONENTE AISLADO PARA LAS FIRMAS
 function PadFirma({ titulo, signatureRef, onChange, onLimpiar }) {
@@ -207,7 +207,7 @@ function Formulario() {
 
           doc.setFontSize(8);
           doc.text(
-            "Gestión de Tecnología\nde Información",
+            "Agricultura\nde precisición",
             data.cell.x + data.cell.width / 2,
             data.cell.y + data.cell.height - padding - 7,
             { align: "center", maxWidth: data.cell.width - padding * 2 }

@@ -1,6 +1,7 @@
 import { useForm, useFieldArray } from "react-hook-form";
 
 export default function BoletaForm() {
+    
   const { register, control, handleSubmit } = useForm({
     defaultValues: {
       // Aquí definimos la estructura inicial de la lista de repuestos
