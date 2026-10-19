@@ -4,13 +4,13 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import logoUrl from "../../public/logo.png";
 import { SimpleSignature } from "react-simple-signature";
+import "./Formulario.css"; // 👈 IMPORTAMOS LOS ESTILOS
 
-// 1. COMPONENTE AISLADO PARA LAS FIRMAS
-// Esto evita que la página se quede en blanco al agregar/quitar ítems
+// COMPONENTE AISLADO PARA LAS FIRMAS
 function PadFirma({ titulo, signatureRef, onChange, onLimpiar }) {
   return (
-    <div style={{ marginBottom: "20px", padding: "12px", border: "1px solid #ccc" }}>
-      <legend><strong>{titulo}</strong></legend>
+    <div className="card signature-pad">
+      <legend>{titulo}</legend>
       <SimpleSignature
         ref={signatureRef}
         onChange={onChange}
@@ -19,7 +19,7 @@ function PadFirma({ titulo, signatureRef, onChange, onLimpiar }) {
         strokeColor="#000"
       />
       <div style={{ marginTop: "10px" }}>
-        <button type="button" onClick={onLimpiar}>
+        <button type="button" className="btn btn-clear" onClick={onLimpiar}>
           Limpiar firma
         </button>
       </div>
@@ -39,6 +39,8 @@ function Formulario() {
     fecha: "",
     colaborador: "",
     carne: "",
+    nombreRecibe: "",
+    nombreEntrega: "",
   });
 
   const [items, setItems] = useState([{ ...itemVacio }]);
@@ -77,7 +79,7 @@ function Formulario() {
     setFirmaEntregaBase64("");
   };
 
-  // --- Handlers de la boleta e items ---
+  // --- Handlers ---
   const handleBoletaChange = (e) => {
     const { name, value } = e.target;
     setBoleta((prev) => ({ ...prev, [name]: value }));
@@ -151,8 +153,7 @@ function Formulario() {
       alert("Cada ítem debe tener una cantidad mayor o igual a 1.");
       return;
     }
-    
-    // Validación opcional de firmas
+
     if (!firmaBase64 || !firmaEntregaBase64) {
       if (!window.confirm("Faltan firmas. ¿Deseas generar el PDF de todos modos?")) {
         return;
@@ -160,9 +161,8 @@ function Formulario() {
     }
 
     const doc = new jsPDF();
-
-    // --- Cargar logo ---
     const logo = await cargarImagenLocal(logoUrl);
+
     if (!logo) {
       console.warn("⚠️ No se pudo cargar el logo.");
     }
@@ -172,12 +172,7 @@ function Formulario() {
       startY: 10,
       margin: { left: 14, right: 14 },
       theme: "grid",
-      styles: {
-        fontSize: 8,
-        cellPadding: 2,
-        valign: "middle",
-        minCellHeight: 30,
-      },
+      styles: { fontSize: 8, cellPadding: 2, valign: "middle", minCellHeight: 30 },
       head: [],
       body: [
         [
@@ -195,16 +190,10 @@ function Formulario() {
         2: { cellWidth: 35 },
       },
       didDrawCell: (data) => {
-        if (
-          data.section === "body" &&
-          data.column.index === 0 &&
-          logo &&
-          logo.base64
-        ) {
+        if (data.section === "body" && data.column.index === 0 && logo && logo.base64) {
           const padding = 2;
           const maxW = data.cell.width - padding * 2;
           const maxH = data.cell.height / 2 - padding;
-
           const ratio = logo.width / logo.height;
           let w = maxW;
           let h = w / ratio;
@@ -212,10 +201,8 @@ function Formulario() {
             h = maxH;
             w = h * ratio;
           }
-
           const x = data.cell.x + (data.cell.width - w) / 2;
           const y = data.cell.y + padding;
-
           doc.addImage(logo.base64, "PNG", x, y, w, h);
 
           doc.setFontSize(8);
@@ -231,7 +218,6 @@ function Formulario() {
 
     // --- Datos de la boleta ---
     const startY = doc.lastAutoTable.finalY + 10;
-
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.text(`${fechaEnLetras(boleta.fecha)}`, 14, startY);
@@ -246,7 +232,6 @@ function Formulario() {
     doc.text(`Departamento de Agricultura de Precisión`, 20, startY + 22);
     doc.text(`Asignación de equipo`, 28, startY + 28);
 
-    // --- Párrafo descriptivo ---
     const parrafo = `Por medio de la presente se le informa que se le asigna el siguiente material para el resguardo y transferencia de información relacionada con sus actividades laborales.`;
     const lineas = doc.splitTextToSize(parrafo, 180);
     const yParrafo = startY + 32;
@@ -261,13 +246,7 @@ function Formulario() {
     autoTable(doc, {
       startY: yTabla,
       head: [["No.", "Descripción", "Marca", "Cantidad", "Observación"]],
-      body: items.map((it, i) => [
-        i + 1,
-        it.descripcion,
-        it.marca,
-        it.cantidad,
-        it.observacion,
-      ]),
+      body: items.map((it, i) => [i + 1, it.descripcion, it.marca, it.cantidad, it.observacion]),
       styles: { fontSize: 9, cellPadding: 3 },
       headStyles: { fillColor: [40, 40, 40], textColor: 255 },
       alternateRowStyles: { fillColor: [245, 245, 245] },
@@ -279,197 +258,135 @@ function Formulario() {
       },
     });
 
-    // --- Pie del documento y Observaciones ---
+    // --- Pie del documento ---
     const finalY = doc.lastAutoTable.finalY + 10;
-
     doc.setFontSize(10);
     const texto = `Favor de firmar de recibido en el presente memorándum, confirmando la asignación del equipo. Cualquier inconveniente o daño, comunicarse inmediatamente con el departamento de Agricultura de Precisión.`;
     const textoF = doc.splitTextToSize(texto, 180);
     doc.text(textoF, 14, finalY);
-    
+
     doc.setFont("helvetica", "bold");
     doc.text(`OBSERVACIÓN`, 14, finalY + 12);
     doc.setFont("helvetica", "normal");
     doc.text(`-El equipo es de uso exclusivo para actividades de la empresa`, 16, finalY + 16);
 
-    // --- Firmas lado a lado ---
+    // --- Firmas ---
     const yFirmas = finalY + 30;
 
-    // Firma Recibe (Izquierda)
     if (firmaBase64) {
-      doc.addImage(firmaBase64, "PNG", 20, yFirmas, 50, 20); 
+      doc.addImage(firmaBase64, "PNG", 10, yFirmas, 50, 20);
     } else {
-      doc.text("_____________________________", 20, yFirmas + 15);
+      doc.text("_____________________________", 10, yFirmas + 15);
     }
-    doc.text("Firma de quien recibe", 20, yFirmas + 25);
 
-    // Firma Entrega (Derecha)
-    if (firmaEntregaBase64) {
-      doc.addImage(firmaEntregaBase64, "PNG", 120, yFirmas, 50, 20);
+    if (boleta.nombreRecibe) {
+      doc.setFont("helvetica", "bold");
+      doc.text(boleta.nombreRecibe, 20, yFirmas + 20);
+      doc.setFont("helvetica", "normal");
+      doc.text("Firma de quien recibe", 20, yFirmas + 25);
     } else {
-      doc.text("_____________________________", 120, yFirmas + 15);
+      doc.text("Firma de quien recibe", 20, yFirmas + 25);
     }
-    doc.text("Firma de quien entrega", 120, yFirmas + 25);
+
+    if (firmaEntregaBase64) {
+      doc.addImage(firmaEntregaBase64, "PNG", 105, yFirmas, 50, 20);
+    } else {
+      doc.text("_____________________________", 105, yFirmas + 15);
+    }
+
+    if (boleta.nombreEntrega) {
+      doc.setFont("helvetica", "bold");
+      doc.text(boleta.nombreEntrega, 120, yFirmas + 20);
+      doc.setFont("helvetica", "normal");
+      doc.text("Firma de quien entrega", 120, yFirmas + 25);
+    } else {
+      doc.text("Firma de quien entrega", 120, yFirmas + 25);
+    }
 
     doc.save(`boleta-${Date.now()}.pdf`);
   };
 
   return (
-    <div>
-      <h2>Carta de Responsabilidad de Materiales</h2>
+    <div className="form-container">
+      <h2 className="form-title">Carta de Responsabilidad de Materiales</h2>
 
       <form onSubmit={generarPDF}>
-        <fieldset
-          style={{
-            marginBottom: "20px",
-            padding: "12px",
-            border: "1px solid #999",
-          }}
-        >
-          <legend>
-            <strong>Datos de la boleta</strong>
-          </legend>
+        {/* --- Datos de la boleta --- */}
+        <fieldset className="card">
+          <legend>Datos de la boleta</legend>
 
-          <div>
-            <label>Fecha: </label>
-            <input
-              type="date"
-              name="fecha"
-              value={boleta.fecha}
-              onChange={handleBoletaChange}
-              required
-            />
+          <div className="form-group">
+            <label>Fecha:</label>
+            <input type="date" name="fecha" value={boleta.fecha} onChange={handleBoletaChange} required />
           </div>
 
-          <div>
-            <label>Colaborador: </label>
-            <input
-              type="text"
-              name="colaborador"
-              value={boleta.colaborador}
-              onChange={handleBoletaChange}
-              placeholder="Nombre completo"
-              required
-            />
+          <div className="form-group">
+            <label>Colaborador:</label>
+            <input type="text" name="colaborador" value={boleta.colaborador} onChange={handleBoletaChange} placeholder="Nombre completo" required />
           </div>
 
-          <div>
-            <label>Carné: </label>
-            <input
-              type="text"
-              name="carne"
-              value={boleta.carne}
-              onChange={handleBoletaChange}
-              placeholder="Carné"
-              required
-            />
+          <div className="form-group">
+            <label>Carné:</label>
+            <input type="text" name="carne" value={boleta.carne} onChange={handleBoletaChange} placeholder="Carné" required />
+          </div>
+          
+          <div className="form-group">
+            <label>Nombre de quien recibe:</label>
+            <input type="text" name="nombreRecibe" value={boleta.nombreRecibe} onChange={handleBoletaChange} placeholder="Nombre" />
+          </div>
+
+          <div className="form-group">
+            <label>Nombre de quien entrega:</label>
+            <input type="text" name="nombreEntrega" value={boleta.nombreEntrega} onChange={handleBoletaChange} placeholder="Nombre" />
           </div>
         </fieldset>
 
-        <h3>Equipos entregados</h3>
+        <h3 className="section-title">Equipos entregados</h3>
 
         {items.map((item, index) => (
-          <fieldset
-            key={index}
-            style={{
-              marginBottom: "16px",
-              padding: "12px",
-              border: "1px solid #ccc",
-            }}
-          >
-            <legend>
-              <strong>Ítem #{index + 1}</strong>
-            </legend>
+          <fieldset key={index} className="card">
+            <legend>Ítem #{index + 1}</legend>
 
-            <div>
-              <label>Descripción: </label>
-              <input
-                type="text"
-                value={item.descripcion}
-                onChange={(e) =>
-                  handleItemChange(index, "descripcion", e.target.value)
-                }
-                placeholder="Ej. Memoria USB"
-                required
-              />
-            </div>
+            <div className="grid-4">
+              <div className="form-group">
+                <label>Descripción:</label>
+                <input type="text" value={item.descripcion} onChange={(e) => handleItemChange(index, "descripcion", e.target.value)} placeholder="Ej. Memoria USB" required />
+              </div>
 
-            <div>
-              <label>Marca: </label>
-              <input
-                type="text"
-                value={item.marca}
-                onChange={(e) =>
-                  handleItemChange(index, "marca", e.target.value)
-                }
-                placeholder="Ej. hp"
-                required
-              />
-            </div>
-            <div>
-              <label>Cantidad: </label>
-              <input
-                type="number"
-                min="1"
-                value={item.cantidad}
-                onChange={(e) =>
-                  handleItemChange(index, "cantidad", e.target.value)
-                }
-                style={{ width: "80px" }}
-                required
-              />
-            </div>
-            <div>
-              <label>Observación: </label>
-              <input
-                type="text"
-                value={item.observacion}
-                onChange={(e) =>
-                  handleItemChange(index, "observacion", e.target.value)
-                }
-                placeholder="Ej. Nuevo"
-                required
-              />
+              <div className="form-group">
+                <label>Marca:</label>
+                <input type="text" value={item.marca} onChange={(e) => handleItemChange(index, "marca", e.target.value)} placeholder="Ej. hp" required />
+              </div>
+
+              <div className="form-group">
+                <label>Cantidad:</label>
+                <input type="number" min="1" value={item.cantidad} onChange={(e) => handleItemChange(index, "cantidad", e.target.value)} required />
+              </div>
+
+              <div className="form-group">
+                <label>Observación:</label>
+                <input type="text" value={item.observacion} onChange={(e) => handleItemChange(index, "observacion", e.target.value)} placeholder="Ej. Nuevo" required />
+              </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => eliminarItem(index)}
-              disabled={items.length === 1}
-              style={{ marginTop: "8px" }}
-            >
+            <button type="button" className="btn btn-danger" onClick={() => eliminarItem(index)} disabled={items.length === 1} style={{ marginTop: "8px" }}>
               🗑️ Eliminar este ítem
             </button>
           </fieldset>
         ))}
 
-        <div style={{ display: "flex", gap: "12px", marginTop: "12px", marginBottom: "20px" }}>
-          <button type="button" onClick={agregarItem}>
+        <div className="actions-row">
+          <button type="button" className="btn btn-outline-blue" onClick={agregarItem}>
             ➕ Agregar otro elemento
           </button>
         </div>
 
-        {/* 2. USO DEL COMPONENTE AISLADO */}
-        <PadFirma
-          titulo="Firma del colaborador (Recibe)"
-          signatureRef={signatureRef}
-          onChange={handleSignature}
-          onLimpiar={limpiarFirma}
-        />
+        <PadFirma titulo="Firma del colaborador (Recibe)" signatureRef={signatureRef} onChange={handleSignature} onLimpiar={limpiarFirma} />
+        <PadFirma titulo="Firma de quien entrega" signatureRef={signatureEntregaRef} onChange={handleSignatureEntrega} onLimpiar={limpiarFirmaEntrega} />
 
-        <PadFirma
-          titulo="Firma de quien entrega"
-          signatureRef={signatureEntregaRef}
-          onChange={handleSignatureEntrega}
-          onLimpiar={limpiarFirmaEntrega}
-        />
-
-        <div style={{ display: "flex", gap: "12px", marginTop: "12px" }}>
-          <button type="submit">
-            📄 Generar boleta PDF ({items.length} ítem
-            {items.length !== 1 ? "s" : ""})
-          </button>
-        </div>
+        <button type="submit" className="btn btn-primary-green">
+          📄 Generar boleta PDF ({items.length} ítem{items.length !== 1 ? "s" : ""})
+        </button>
       </form>
     </div>
   );
