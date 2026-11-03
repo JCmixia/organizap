@@ -1,8 +1,12 @@
 // src/layouts/MainLayout.jsx
+import { useState } from 'react'
 import Formulario from '../components/Formulario'
+import Formulario2 from '../components/Formulario2'
 import '../MainLayout.css'
 
 const MainLayout = ({ children }) => {
+  // null = no mostrar nada / o el que quieras por defecto
+  const [formularioActivo, setFormularioActivo] = useState('formulario2')
 
   return (
     <div className="app">
@@ -15,26 +19,27 @@ const MainLayout = ({ children }) => {
       {/* CONTENEDOR PRINCIPAL */}
       <div className="contenedor-flex">
 
-
         {/* HEADER VERTICAL */}
-        {/*
-          <div className="header-vertical">
-            <h2>Inicio</h2>
-            <ul>
-              <li>Inventario</li>
-              <li>Actividades</li>
-              <li>Documentación</li>
-              <li>Personal</li>
-            </ul>
-          </div>
-
-        */}
-
+        <div className="header-vertical">
+          <h2>Inicio</h2>
+          <ul>
+            <li onClick={() => setFormularioActivo('formulario2')}>
+              Entrega de equipos
+            </li>
+            <li onClick={() => setFormularioActivo(null)}>
+              Documentación
+            </li>
+            <li onClick={() => setFormularioActivo(null)}>
+              Personal
+            </li>
+          </ul>
+        </div>
 
         {/* CONTENIDO DERECHO */}
         <div className="contenido-derecho">
           <div className="main">
-            <Formulario />
+            {formularioActivo === 'formulario1' && <Formulario />}
+            {formularioActivo === 'formulario2' && <Formulario2 />}
             {children}
           </div>
 
@@ -49,4 +54,4 @@ const MainLayout = ({ children }) => {
   );
 };
 
-export default MainLayout;
+export default MainLayout;  
