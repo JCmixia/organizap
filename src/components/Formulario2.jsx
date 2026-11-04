@@ -39,8 +39,9 @@ function Formulario() {
     fecha: "",
     colaborador: "",
     carne: "",
-    nombreRecibe: "",
+    comentario: "",
     nombreEntrega: "",
+    carneEntrega: "",
   });
 
   const [items, setItems] = useState([{ ...itemVacio }]);
@@ -181,7 +182,7 @@ function Formulario() {
             content: "Documento de entrega de Equipo",
             styles: { halign: "center", fontStyle: "bold", fontSize: 10 },
           },
-          
+
         ],
       ],
       columnStyles: {
@@ -262,20 +263,32 @@ function Formulario() {
     const finalY = doc.lastAutoTable.finalY + 10;
     doc.setFontSize(10);
 
-    const texto = `Favor de firmar de recibido en el presente documento, confirmando la recepción del equipo y  el commpromiso de utilizarlo de forma adecuada y únicamente para fines relacionados con las actividades de la empresa.`;
+    const texto = `Favor de firmar de recibido en el presente documento, confirmando la recepción del equipo y  el compromiso de utilizarlo de forma adecuada y únicamente para fines relacionados con las actividades de la empresa.`;
     const textoF = doc.splitTextToSize(texto, 180);
     doc.text(textoF, 14, finalY);
 
     doc.setFont("helvetica", "bold");
-    doc.text(`Observación`, 14, finalY + 12);
+    const texto3 = `En caso de daño, falla, pérdida o cualquier inconveniente, deberá informarse de inmediato al departamento de Agricultura de Precisión.`
+    const texto3F = doc.splitTextToSize(texto3, 180);
+    doc.setFont("helvetica", "normal");
+    doc.text(texto3F, 14, finalY + 12);
+
+    doc.setFont("helvetica", "bold");
+    doc.text(`Observación`, 14, finalY + 24);
     const obser = `El equipo es propiedad de la empresa y está destinado exclusivamente para actividades laborales autorizadas por la organización.`
     const obserB = doc.splitTextToSize(obser, 180);
-    doc.setFont("helvetica", "normal");
-    doc.text(obserB, 16, finalY + 16);
 
-    
+    doc.setFont("helvetica", "normal");
+    doc.text(obserB, 16, finalY + 30);
+
+    const obser2 = `${boleta.comentario}`
+    const obser2B = doc.splitTextToSize(obser2, 180);
+
+    doc.setFont("helvetica", "normal");
+    doc.text(obser2B, 16, finalY + 42);
+
     // --- Firmas ---
-    const yFirmas = finalY + 30;
+    const yFirmas = finalY + 50;
 
     if (firmaBase64) {
       doc.addImage(firmaBase64, "PNG", 10, yFirmas, 50, 20);
@@ -283,13 +296,14 @@ function Formulario() {
       doc.text("_____________________________", 10, yFirmas + 15);
     }
 
-    if (boleta.nombreRecibe) {
+    if (boleta.colaborador) {
       doc.setFont("helvetica", "bold");
-      doc.text(boleta.nombreRecibe, 20, yFirmas + 20);
+      doc.text(boleta.colaborador, 20, yFirmas + 20);
       doc.setFont("helvetica", "normal");
-      doc.text("Firma de quien recibe", 20, yFirmas + 25);
+      doc.text(boleta.carne, 20, yFirmas + 25);
+      doc.text("Firma de quien recibe", 20, yFirmas + 30);
     } else {
-      doc.text("Firma de quien recibe", 20, yFirmas + 25);
+      doc.text("Firma de quien recibe", 20, yFirmas + 30);
     }
 
     if (firmaEntregaBase64) {
@@ -302,9 +316,10 @@ function Formulario() {
       doc.setFont("helvetica", "bold");
       doc.text(boleta.nombreEntrega, 120, yFirmas + 20);
       doc.setFont("helvetica", "normal");
-      doc.text("Firma de quien entrega", 120, yFirmas + 25);
+      doc.text(boleta.carneEntrega, 120, yFirmas + 25);
+      doc.text("Firma de quien entrega", 120, yFirmas + 30);
     } else {
-      doc.text("Firma de quien entrega", 120, yFirmas + 25);
+      doc.text("Firma de quien entrega", 120, yFirmas + 30);
     }
 
     doc.save(`boleta-${Date.now()}.pdf`);
@@ -325,25 +340,32 @@ function Formulario() {
           </div>
 
           <div className="form-group">
-            <label>Colaborador:</label>
+            <label>Nombre de quien recibe:</label>
             <input type="text" name="colaborador" value={boleta.colaborador} onChange={handleBoletaChange} placeholder="Nombre completo" required />
           </div>
 
           <div className="form-group">
             <label>Carné:</label>
-            <input type="text" name="carne" value={boleta.carne} onChange={handleBoletaChange} placeholder="Carné" required />
-          </div>
-          
-          <div className="form-group">
-            <label>Nombre de quien recibe:</label>
-            <input type="text" name="nombreRecibe" value={boleta.nombreRecibe} onChange={handleBoletaChange} placeholder="Nombre" />
+            <input type="text" name="carne" value={boleta.carne} onChange={handleBoletaChange} placeholder="Código colaborador" required />
           </div>
 
           <div className="form-group">
             <label>Nombre de quien entrega:</label>
             <input type="text" name="nombreEntrega" value={boleta.nombreEntrega} onChange={handleBoletaChange} placeholder="Nombre" />
           </div>
+
+          <div className="form-group">
+            <label>Carné:</label>
+            <input type="text" name="carneEntrega" value={boleta.carneEntrega} onChange={handleBoletaChange} placeholder="Código colaborador" />
+          </div>
+
+          <div className="form-group">
+            <label>Obeservación:</label>
+            <input type="text" name="comentario" value={boleta.comentario} onChange={handleBoletaChange} placeholder="Observación" />
+          </div>
         </fieldset>
+
+
 
         <h3 className="section-title">Equipos entregados</h3>
 
